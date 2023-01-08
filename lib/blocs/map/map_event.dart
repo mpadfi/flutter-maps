@@ -12,3 +12,13 @@ class OnMapInitializedEvent extends MapEvent {
   final GoogleMapController controller;
   const OnMapInitializedEvent(this.controller);
 }
+
+// Evento para dejar de seguir al usuario o seguir
+class OnStopFollowingUserMap extends MapEvent {}
+
+class OnStartFollowingUserMap extends MapEvent {}
+
+class UpdateUserPolylineEvent extends MapEvent {
+  final List<LatLng> userLocations;
+  const UpdateUserPolylineEvent(this.userLocations);
+}

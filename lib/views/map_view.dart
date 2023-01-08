@@ -5,9 +5,15 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../blocs/blocs.dart';
 
 class MapView extends StatelessWidget {
+  //
   final LatLng initialLocation;
+  final Set<Polyline> polylines;
 
-  const MapView({super.key, required this.initialLocation});
+  const MapView({
+    super.key,
+    required this.initialLocation,
+    required this.polylines,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -24,17 +30,20 @@ class MapView extends StatelessWidget {
     return SizedBox(
       width: size.width,
       height: size.height,
-      child: GoogleMap(
-        initialCameraPosition: iCP,
-        padding: const EdgeInsets.all(16),
-        compassEnabled: false,
-        myLocationEnabled: true,
-        myLocationButtonEnabled: false,
-        zoomControlsEnabled: false,
-        onMapCreated: (controller) => mapBloc.add(OnMapInitializedEvent(controller)),
-        //TODO MARKERS
-        //TODO POLYLINES
-        //TODO cuando se mueve el mapa
+      child: Listener(
+        onPointerMove: (pointerMoveEvent) => mapBloc.add(OnStopFollowingUserMap()),
+        child: GoogleMap(
+          initialCameraPosition: iCP,
+          padding: const EdgeInsets.all(16),
+          compassEnabled: false,
+          myLocationEnabled: true,
+          myLocationButtonEnabled: false,
+          zoomControlsEnabled: false,
+          polylines: polylines,
+          onMapCreated: (controller) => mapBloc.add(OnMapInitializedEvent(controller)),
+          //TODO MARKERS
+          //TODO cuando se mueve el mapa
+        ),
       ),
     );
   }
