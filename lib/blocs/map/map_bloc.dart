@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:bloc/bloc.dart';
@@ -14,6 +15,8 @@ class MapBloc extends Bloc<MapEvent, MapState> {
   final LocationBloc locationBloc;
   GoogleMapController? _mapController;
 
+  StreamSubscription<LocationState>? locationSubscription;
+
   MapBloc({
     required this.locationBloc,
   }) : super(const MapState()) {
@@ -21,11 +24,11 @@ class MapBloc extends Bloc<MapEvent, MapState> {
     on<OnMapInitializedEvent>(_onInitMap);
     on<OnStartFollowingUserMap>(_onStartFollowingUser);
     on<OnStopFollowingUserMap>((event, emit) => emit(state.copyWith(followUser: false)));
-
     on<UpdateUserPolylineEvent>(_onPolylineNewPoint);
+    on<OnToggleShowRoute>((event, emit) => emit(state.copyWith(showMyRoute: !state.showMyRoute)));
 
     // MOVER EL MAPA SIGUIENDO LA LOCALIZACIÓN DEL LOCATIONBLOC.LASTKNOWNLOCATION
-    locationBloc.stream.listen((locationState) {
+    locationSubscription = locationBloc.stream.listen((locationState) {
       if (locationState.lastKnownLocation != null) {
         add(UpdateUserPolylineEvent(locationState.myLocationHistory));
       }
@@ -69,5 +72,11 @@ class MapBloc extends Bloc<MapEvent, MapState> {
   void moveCamera(LatLng newLocation) {
     final cameraUpdate = CameraUpdate.newLatLng(newLocation);
     _mapController?.animateCamera(cameraUpdate);
+  }
+
+  @override
+  Future<void> close() {
+    locationSubscription?.cancel();
+    return super.close();
   }
 }
