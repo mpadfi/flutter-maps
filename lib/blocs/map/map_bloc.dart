@@ -5,6 +5,7 @@ import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:maps_app/blocs/blocs.dart';
+import 'package:maps_app/models/models.dart';
 import 'package:maps_app/themes/themes.dart';
 
 part 'map_event.dart';
@@ -14,18 +15,20 @@ class MapBloc extends Bloc<MapEvent, MapState> {
   //
   final LocationBloc locationBloc;
   GoogleMapController? _mapController;
+  LatLng? mapCenter;
 
   StreamSubscription<LocationState>? locationSubscription;
 
   MapBloc({
     required this.locationBloc,
   }) : super(const MapState()) {
-    //
+    //* EVENTOS
     on<OnMapInitializedEvent>(_onInitMap);
     on<OnStartFollowingUserMap>(_onStartFollowingUser);
     on<OnStopFollowingUserMap>((event, emit) => emit(state.copyWith(followUser: false)));
     on<UpdateUserPolylineEvent>(_onPolylineNewPoint);
     on<OnToggleShowRoute>((event, emit) => emit(state.copyWith(showMyRoute: !state.showMyRoute)));
+    on<DisplayPolylineEvent>((event, emit) => emit(state.copyWith(polylines: event.polylines)));
 
     // MOVER EL MAPA SIGUIENDO LA LOCALIZACIÓN DEL LOCATIONBLOC.LASTKNOWNLOCATION
     locationSubscription = locationBloc.stream.listen((locationState) {
@@ -67,6 +70,25 @@ class MapBloc extends Bloc<MapEvent, MapState> {
     currentPolylines['myRoute'] = myRoute;
 
     emit(state.copyWith(polylines: currentPolylines));
+  }
+
+  void drawRoutePolyline(RouteDestination destination) async {
+    //* creamos la polyline
+    final myRoute = Polyline(
+      polylineId: const PolylineId('route'),
+      color: Colors.black,
+      width: 4,
+      points: destination.points,
+      startCap: Cap.roundCap,
+      endCap: Cap.roundCap,
+    );
+
+    //* añadimos la polyline al mapa de polylines
+    final currentPolylines = Map<String, Polyline>.from(state.polylines);
+    currentPolylines['route'] = myRoute;
+
+    //* evento que crea un nuevo estado con la nueva polyline
+    add(DisplayPolylineEvent(currentPolylines));
   }
 
   void moveCamera(LatLng newLocation) {
