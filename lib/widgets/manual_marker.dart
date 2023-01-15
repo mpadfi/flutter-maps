@@ -20,7 +20,7 @@ class _ManualMarkerBody extends StatelessWidget {
   const _ManualMarkerBody();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, [bool mounted = true]) {
     //
     final size = MediaQuery.of(context).size;
     final searchBloc = BlocProvider.of<SearchBloc>(context);
@@ -67,19 +67,30 @@ class _ManualMarkerBody extends StatelessWidget {
                 minWidth: size.width - 120,
                 shape: const StadiumBorder(),
                 onPressed: () async {
-                  //* asignamos el punto inicial con la última localización del Location Bloc
+                  //* CONFIRMAR DESTINO Y MOSTRAR EN MAPA
+                  // asignamos el punto inicial con la última localización del Location Bloc
                   final start = locationBloc.state.lastKnownLocation;
                   if (start == null) return;
 
-                  //* asignamos el punto final con el mapCenter del Map Bloc
+                  // asignamos el punto final con el mapCenter del Map Bloc
                   final end = mapBloc.mapCenter;
                   if (end == null) return;
 
-                  //* confirmar destino en Search Bloc
+                  // mostramos mensaje
+                  // showLoadingMessage(context);
+
+                  // Ocultar la barra de busqueda
+                  searchBloc.add(OnDeactivateManualMarketEvent());
+
+                  // confirmar destino en Search Bloc
                   final destination = await searchBloc.getCoordsStartToEnd(start, end);
 
-                  //* dibujamos la linea con el metodo del mapbloc
-                  mapBloc.drawRoutePolyline(destination);
+                  // dibujamos la linea con el metodo del mapbloc
+                  await mapBloc.drawRoutePolyline(destination);
+
+                  // cerrar mensaje
+                  // if (!mounted) return;
+                  // Navigator.pop(context);
                 },
                 child: const Text('Confimar Destino', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w400)),
               ),
