@@ -5,6 +5,7 @@ import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:maps_app/blocs/blocs.dart';
+import 'package:maps_app/helpers/helpers.dart';
 import 'package:maps_app/models/models.dart';
 import 'package:maps_app/themes/themes.dart';
 
@@ -28,7 +29,7 @@ class MapBloc extends Bloc<MapEvent, MapState> {
     on<OnStopFollowingUserMap>((event, emit) => emit(state.copyWith(followUser: false)));
     on<UpdateUserPolylineEvent>(_onPolylineNewPoint);
     on<OnToggleShowRoute>((event, emit) => emit(state.copyWith(showMyRoute: !state.showMyRoute)));
-    on<DisplayPolylineEvent>((event, emit) => emit(state.copyWith(polylines: event.polylines)));
+    on<DisplayPolylineEvent>((event, emit) => emit(state.copyWith(polylines: event.polylines, markers: event.markers)));
 
     // MOVER EL MAPA SIGUIENDO LA LOCALIZACIÓN DEL LOCATIONBLOC.LASTKNOWNLOCATION
     locationSubscription = locationBloc.stream.listen((locationState) {
@@ -73,7 +74,8 @@ class MapBloc extends Bloc<MapEvent, MapState> {
   }
 
   Future drawRoutePolyline(RouteDestination destination) async {
-    //* creamos la polyline
+    //
+    //* CREAMOS LA POLYLINE
     final myRoute = Polyline(
       polylineId: const PolylineId('route'),
       color: Colors.black,
@@ -83,12 +85,58 @@ class MapBloc extends Bloc<MapEvent, MapState> {
       endCap: Cap.roundCap,
     );
 
+    double kms = destination.distance / 1000;
+    kms = (kms * 100).floorToDouble();
+    kms /= 100; // kms = kms / 100
+
+    int tripDuration = (destination.duration ~/ 60).toInt();
+
+    //* custom marker
+    // final startMarkerIcon = await getAssetImageMarker();
+    // final endMarkerIcon = await getNetworkImageMarker();
+
+    final startMarkerIcon = await getStartCustomMarker(tripDuration, 'Mi ubicación');
+    final endMarkerIcon = await getEndCustomMarker(kms.toInt(), destination.endPlace.text);
+
+    //* MARCADOR INICIO RUTA
+    final startMarker = Marker(
+      markerId: const MarkerId('start'),
+      anchor: const Offset(0, 1),
+      position: destination.points.first,
+      icon: startMarkerIcon,
+      // infoWindow: InfoWindow(
+      //   title: 'Inicio',
+      //   snippet: 'Distancia: $kms, duración: $tripDuration',
+      // ),
+    );
+
+    //* MARCADOR FIN RUTA
+    final endMarker = Marker(
+      markerId: const MarkerId('end'),
+      position: destination.points.last,
+      icon: endMarkerIcon,
+      // anchor: const Offset(0, 0),
+      // infoWindow: InfoWindow(
+      //   title: 'Fin',
+      //   snippet: destination.endPlace.placeName,
+      // ),
+    );
+
     //* añadimos la polyline al mapa de polylines
     final currentPolylines = Map<String, Polyline>.from(state.polylines);
-    currentPolylines['route'] = myRoute;
+    currentPolylines['route'] = myRoute; // sobrescribimos la polyline con id 'route'
+
+    //* añadimos los marcadores al mapa de markers
+    final currentMarkers = Map<String, Marker>.from(state.markers);
+    currentMarkers['start'] = startMarker; // sobrescribimos el marker con id 'start'
+    currentMarkers['end'] = endMarker;
 
     //* evento que crea un nuevo estado con la nueva polyline
-    add(DisplayPolylineEvent(currentPolylines));
+    add(DisplayPolylineEvent(currentPolylines, currentMarkers));
+
+    // await Future.delayed(const Duration(milliseconds: 300));
+    // mostrar el infowindow automaticamente del marcador start
+    // _mapController?.showMarkerInfoWindow(const MarkerId('start'));
   }
 
   void moveCamera(LatLng newLocation) {

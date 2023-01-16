@@ -27,9 +27,12 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
     //
     final trafficResp = await trafficService.getCoordStartToEnd(start, end);
 
-    final geometry = trafficResp.routes?[0]?.geometry;
-    final distance = trafficResp.routes?[0]?.distance;
-    final duration = trafficResp.routes?[0]?.duration;
+    //* Información del destino
+    final endPlace = await trafficService.getInformationByCoors(end);
+
+    final geometry = trafficResp.routes![0]!.geometry;
+    final distance = trafficResp.routes![0]!.distance;
+    final duration = trafficResp.routes![0]!.duration;
 
     //*decodificar
     final points = decodePolyline(geometry!, accuracyExponent: 6);
@@ -39,6 +42,7 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
       points: latLngList,
       duration: duration!,
       distance: distance!,
+      endPlace: endPlace,
     );
   }
 
